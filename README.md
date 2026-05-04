@@ -10,7 +10,7 @@
 ## 📸 What It Looks Like
 
 <!-- Upload a screenshot of your app and replace screenshot.png with the actual filename -->
-![Extracto App](screenshot.png)
+![Extracto App](extracto.jpeg)
 
 ---
 
