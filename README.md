@@ -1,108 +1,113 @@
 # extracto — Invoice Intelligence
 
-> Parse any invoice in seconds using Vision AI. Drop a file, get clean structured data instantly.
+Parse invoices in seconds using Vision AI. Upload a file and receive structured, clean JSON output instantly.
 
-## 🌐 Live Demo
-👉 **[Try it live](https://extracto-production.up.railway.app/)**
+## Live Demo
 
----
-
-## ✨ What It Does
-
-Upload any invoice as a JPG, PNG, or PDF and instantly extract:
-
-| Field | Example |
-|-------|---------|
-| Invoice Number | INV-2024-0042 |
-| Date | January 15, 2025 |
-| Vendor Name | Acme Corporation |
-| Customer Name | TechStart Inc. |
-| Total Amount | $4,280.00 |
-| Line Items | Description · Qty · Unit Price · Total |
-| Notes | Net 30 payment terms |
+Access the application here:  
+https://extracto-production.up.railway.app/
 
 ---
 
-## 🚀 Features
+## Overview
 
-- ⚡ **Fast** — Results in under 5 seconds
-- 🤖 **Vision AI** — Powered by Qwen2-VL-2B model
-- 📁 **Multi-format** — Accepts JPG, PNG, and PDF up to 10MB
-- 🌍 **Multi-currency** — Auto-detects USD, EUR, GBP, INR, JPY, AED and more
-- 🔁 **Reliable** — 3x auto-retry with exponential backoff
-- 🔒 **Safe** — File type validation, size limits, deduplication
+extracto is a vision-powered invoice extraction system that converts unstructured invoice documents into structured, machine-readable data.
+
+It supports images and PDFs and is designed for fast, reliable extraction of key billing information without manual intervention.
 
 ---
 
-## 🛠️ Tech Stack
+## Key Features
+
+- Fast processing with results typically under five seconds  
+- Vision-based extraction using Qwen2-VL-2B Instruct  
+- Supports JPG, PNG, and PDF files up to 10MB  
+- Multi-currency detection including USD, EUR, GBP, INR, JPY, and AED  
+- Automatic retry mechanism with exponential backoff for reliability  
+- Input validation with file type and size enforcement  
+- Deduplication using SHA-256 hashing to prevent redundant processing  
+
+---
+
+## Extracted Fields
+
+| Field | Description |
+|------|-------------|
+| Invoice Number | Unique invoice identifier |
+| Date | Invoice issue date |
+| Vendor Name | Supplier or issuing company |
+| Customer Name | Recipient of the invoice |
+| Total Amount | Final payable amount |
+| Line Items | Item-level breakdown with quantity, unit price, and totals |
+| Notes | Payment terms or additional remarks |
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
-|-------|------------|
-| Frontend & Proxy | FastAPI + Python 3.11 |
-| Deployment | Railway (Docker) |
+|------|------------|
+| Backend API | FastAPI (Python 3.11) |
 | AI Model | Qwen2-VL-2B Instruct |
-| GPU Inference | Lightning AI — A10G GPU |
-| Libraries | PyTorch · Transformers · httpx · pdf2image |
-| File Handling | Pillow · python-multipart |
+| Inference GPU | Lightning AI (A10G) |
+| Deployment | Railway (Docker-based) |
+| Core Libraries | PyTorch, Transformers, httpx, pdf2image |
+| File Processing | Pillow, python-multipart |
 
 ---
 
-## 🏗️ Architecture
-User (Browser)
-↓ HTTPS
-FastAPI Proxy (Railway)
-→ validates file type & size
-→ SHA-256 deduplication
-→ 3x retry with backoff
-↓ HTTPS
-Lightning AI GPU Server
-→ Qwen2-VL Vision Model
-→ extracts all invoice fields
-→ returns clean JSON
-↓
-Result displayed in UI
+## System Architecture
+
+User uploads an invoice through the web interface.
+
+The request flows through a FastAPI proxy deployed on Railway, which performs validation, deduplication, and retry handling.
+
+The processed file is forwarded securely to a Lightning AI GPU endpoint hosting the Qwen2-VL model.
+
+The model extracts structured invoice data and returns a normalized JSON response.
+
+The frontend renders the extracted output in a clean tabular format.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
+
 extracto/
-├── main.py          # FastAPI proxy server + frontend
-├── server.py        # AI inference server (Qwen2-VL)
-├── Dockerfile       # Docker config for Railway
-├── requirements.txt # Python dependencies
+├── main.py              # FastAPI proxy server and frontend integration
+├── server.py            # GPU inference server using Qwen2-VL
+├── Dockerfile           # Container configuration for deployment
+├── requirements.txt     # Project dependencies
 └── static/
-└── index.html   # Frontend UI
+    └── index.html       # Frontend interface
 
 ---
 
-## ⚙️ How to Run Locally
+## Local Setup
 
-### 1. Clone the repo
-```bash
+### 1. Clone the repository
 git clone https://github.com/Khushiiii002/Extracto.git
 cd Extracto
-```
 
 ### 2. Install dependencies
-```bash
 pip install -r requirements.txt
-```
 
-### 3. Run the app
-```bash
+### 3. Run the FastAPI server
 uvicorn main:app --reload --port 8000
-```
 
-### 4. Open in browser
+### 4. Open the application
 http://localhost:8000
-> ⚠️ Note: The AI inference server (`server.py`) requires a GPU and runs separately on Lightning AI.
+
+Note: The inference server (server.py) requires a GPU environment and runs separately on Lightning AI.
 
 ---
 
-## 👩‍💻 Made By
+## Author
 
-**Khushi** — [@Khushiiii002](https://github.com/Khushiiii002)
+Khushi  
+GitHub: https://github.com/Khushiiii002
 
 ---
 
-⭐ If you found this useful, give it a star!
+## Notes
+
+This project is designed as a modular system with a clear separation between API handling and model inference, making it scalable and deployment-friendly across cloud GPU environments.
