@@ -30,25 +30,54 @@ model.eval()
 
 PROMPT = """You are an invoice data extraction expert. Extract fields from this invoice image and return ONLY a valid JSON object — no explanation, no markdown.
 
-Rules:
+Strict Rules:
 - NEVER guess values not clearly visible
 - NEVER confuse vendor (issuer) with customer (recipient)
-- Set missing fields to null
+- Set missing or unclear fields to null
 - Amounts: numbers only, no currency symbols
 - Dates: exactly as written
+- Extract values exactly as seen (no reformatting unless specified)
 
-Return this JSON structure:
+Vendor Identification Rules:
+- Vendor (seller/issuer) is typically located at the TOP of the invoice
+- Prioritize text near or alongside a LOGO (top-left or top-right corner)
+- If a logo is present, the closest prominent business name is the vendor_name
+- Prefer headers like: "From", "Seller", "Issued By"
+- Do NOT select buyer/customer as vendor
+- Ignore bank/payment sections when identifying vendor
+- If multiple candidates exist, choose the most prominent/topmost business identity
+
+Reference Number Handling:
+- "reference_number" can be labeled as: Ref No, PO Number, Purchase Order, Receipt No, Shipper No, Container No, Booking No, or similar identifiers
+- DO NOT use Invoice Number / Bill No as reference_number
+- If multiple such numbers exist, choose the most relevant transactional reference (priority: PO Number > Receipt > Shipping-related IDs)
+- If none exist, return null
+
+Note Extraction Rules:
+- Extract meaningful remarks, instructions, or additional information
+- INCLUDE: payment instructions, contact details, support info, terms, disclaimers, or query/help messages (e.g., "contact us for any queries")
+- EXCLUDE generic or decorative phrases such as: "Thank you for your business", "Thanks for shopping", greetings, or branding slogans
+- If only generic phrases are present, return null
+
+Return this exact JSON structure:
 {
   "invoice_number": "Invoice No / Bill No",
   "date": "invoice date",
-  "reference_number": "Ref No / PO Number, null if absent",
-  "vendor_name": "seller name",
+  "reference_number": "Ref/PO/Receipt/Shipper/Container/etc (not invoice number)",
+  "vendor_name": "seller name (from logo/top section if present)",
   "vendor_address": "seller address",
   "customer_name": "buyer name",
   "customer_address": "buyer address",
-  "line_items": [{"description": "...", "qty": 0, "unit_price": 0, "total": 0}],
+  "line_items": [
+    {
+      "description": "...",
+      "qty": 0,
+      "unit_price": 0,
+      "total": 0
+    }
+  ],
   "total_amount": 0,
-  "note": "remarks or null"
+  "note": "remarks, instructions, contact/support info, or null"
 }
 
 Return ONLY the JSON. No other text."""
