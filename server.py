@@ -32,107 +32,115 @@ PROMPT = """You are an expert invoice OCR extraction system. Your ONLY job is to
 
 CRITICAL FAILURE MODES TO AVOID:
 - Returning null for fields that ARE visible in the image
-- Missing the date because it is labeled differently (e.g. "Dated", "Bill Date", "Tax Date")
-- Missing the total because it appears at the bottom of a long document
-- Skipping line items because the table has no visible borders
-- Leaving notes empty when payment or banking details are present
+- Missing dates due to alternate labels
+- Missing totals located at the bottom of the document
+- Skipping line items when table borders are not visible
+- Using default values like 0 or placeholder text when data is missing
 
 ════════════════════════════════════════
-STEP 1 — FULL IMAGE SCAN (DO THIS FIRST)
+STEP 1 — FULL IMAGE SCAN (MANDATORY)
 ════════════════════════════════════════
-Before extracting anything, scan these 7 zones in order:
+Scan all zones carefully:
 
-  ZONE 1 → TOP-LEFT     : Logo, company name, letterhead
-  ZONE 2 → TOP-RIGHT    : Invoice no, date, reference codes, PO number
-  ZONE 3 → TOP-CENTER   : Document title (Invoice / Receipt / Tax Invoice / Bill of Lading)
-  ZONE 4 → LEFT BLOCK   : Bill To / Ship To — customer name and address
-  ZONE 5 → MIDDLE TABLE : Line items — every row in the table
-  ZONE 6 → BOTTOM RIGHT : Subtotal, tax, grand total, amount due, balance due
-  ZONE 7 → FOOTER       : Payment terms, bank details, tax numbers, contact info
+ZONE 1 → TOP-LEFT     : Logo, vendor name, letterhead  
+ZONE 2 → TOP-RIGHT    : Invoice number, dates, reference numbers  
+ZONE 3 → TOP-CENTER   : Document title (Invoice, Bill, Receipt)  
+ZONE 4 → LEFT BLOCK   : Customer / billing details  
+ZONE 5 → MIDDLE TABLE : Line items (ALL rows)  
+ZONE 6 → BOTTOM RIGHT : Totals (subtotal, tax, grand total, balance due)  
+ZONE 7 → FOOTER       : Notes, payment terms, bank details, tax info  
 
-Do NOT skip any zone, even if the document looks simple.
+Do NOT skip any zone.
 
 ════════════════════════════════════════
-STEP 2 — DATE EXTRACTION (FIXED)
+STEP 2 — DATE EXTRACTION
 ════════════════════════════════════════
-The date may appear under ANY of these labels — check all:
-  "Date", "Invoice Date", "Bill Date", "Tax Date", "Dated", "Issue Date",
-  "Document Date", "Billing Date", "Date of Issue", "Dt."
-
-Location: ZONE 2 (top-right) OR anywhere in TOP section.
+Look for:
+Date, Invoice Date, Bill Date, Tax Date, Issue Date, Dated, Billing Date
 
 Rules:
-  - Return the date EXACTLY as printed — do not reformat
-  - If multiple dates exist, prefer "Invoice Date" or "Bill Date"
-  - due_date is separate — look for "Due Date", "Payment Due", "Pay By", "Valid Till"
-  - NEVER return null if ANY date-like value exists in ZONE 1–3
-  - Even partial or abbreviated dates (e.g., 12/05, May 12) MUST be returned if clearly visible
+- Return exactly as printed (no reformatting)
+- Prefer Invoice/Bill Date if multiple exist
+- Never return null if any date is visible in ZONE 1–3
 
 ════════════════════════════════════════
-STEP 3 — LINE ITEMS EXTRACTION (IMPROVED)
+STEP 3 — LINE ITEMS
 ════════════════════════════════════════
-Line items are a TABLE in ZONE 5.
+Extract ALL rows from ZONE 5.
 
-Even if there are NO borders, rows can be identified by:
-  - Alignment of text and numbers
-  - Repeated spacing patterns
-  - Left-aligned descriptions with right-aligned amounts
+Identify rows by alignment and spacing, even without borders.
 
-Column headers vary — map them like this:
-  description  <- "Description", "Item", "Particulars", "Product", "Service", "Narration", "Details"
-  qty          <- "Qty", "Quantity", "Units", "Nos", "Pcs", "No."
-  unit_price   <- "Rate", "Unit Price", "Price", "MRP", "Per Unit", "Price Each"
-  total        <- "Amount", "Total", "Line Total", "Ext. Price", "Net", "Value"
-
-MANDATORY RULES:
-  - Extract ALL rows in ZONE 5 — do not stop early
-  - Do NOT merge multiple items into one
-  - Subtotal / Tax / Discount rows → exclude
-  - If a column is missing, use null (NOT 0)
-  - If 5–20 rows exist, ALL must be returned
-
-════════════════════════════════════════
-STEP 4 — TOTAL AMOUNT EXTRACTION (FIXED)
-════════════════════════════════════════
-The total is ALWAYS in ZONE 6 (bottom-right).
-
-Scan for:
-  1st priority → "Grand Total", "Total Due", "Amount Due", "Net Payable", "Balance Due"
-  2nd priority → "Total", "Invoice Total", "Final Amount", "Net Amount"
-  3rd priority → Largest bold/right-aligned number in bottom section
+Map columns:
+- description → Item / Product / Service / Particulars
+- qty → Quantity / Qty / Units
+- unit_price → Rate / Price / Unit Price
+- total → Amount / Line Total / Value
 
 Rules:
-  - Return raw number only (strip currency symbols)
-  - NEVER return 0 unless explicitly printed as final total
-  - NEVER return null if ANY number exists in ZONE 6
-  - If multiple totals exist, choose the FINAL payable amount
+- Extract ALL items
+- Do NOT merge rows
+- Ignore subtotal/tax/discount rows
+- Use null only if a column is missing
 
 ════════════════════════════════════════
-(Everything else remains EXACTLY same)
+STEP 4 — TOTAL AMOUNT (STRICT)
 ════════════════════════════════════════
-- Keep Vendor Identification Rules unchanged
-- Keep Reference Number Rules unchanged
-- Keep Currency Detection unchanged
-- Keep Vendor Name from Logo unchanged
-- Keep Tax and Notes sections unchanged
+Look ONLY in ZONE 6.
+
+Prioritize:
+1. Grand Total
+2. Total Due / Amount Due / Net Payable / Balance Due
+3. Largest bold/right-aligned number at bottom
+
+Rules:
+- Extract exact number only (no currency symbols)
+- NEVER return 0 unless explicitly shown as 0
+- NEVER guess values
+- If multiple totals exist, choose final payable amount
+- If no valid total is found → return null
 
 ════════════════════════════════════════
-OUTPUT FORMAT — UNCHANGED
+STEP 5 — NOTE EXTRACTION (STRICT)
 ════════════════════════════════════════
+Extract ONLY real text from ZONE 7:
+- Payment terms
+- Banking details
+- Remarks
+- Tax/legal info
+
+Rules:
+- Return exact text if present
+- If nothing exists → return null
+- DO NOT use placeholder text
+
+════════════════════════════════════════
+OUTPUT FORMAT (UNCHANGED)
+════════════════════════════════════════
+
+Return ONLY valid JSON:
+
 {
   "invoice_number": "Invoice No / Bill No",
   "date": "invoice date",
-  "reference_number": "Ref No / PO Number, null if absent",
+  "reference_number": "Ref No / PO Number or null",
   "vendor_name": "seller name",
   "vendor_address": "seller address",
   "customer_name": "buyer name",
   "customer_address": "buyer address",
-  "line_items": [{"description": "...", "qty": 0, "unit_price": 0, "total": 0}],
-  "total_amount": 0,
-  "note": "remarks or null"
+  "line_items": [
+    {
+      "description": "...",
+      "qty": null,
+      "unit_price": null,
+      "total": null
+    }
+  ],
+  "total_amount": null,
+  "note": null
 }
 
-Return ONLY the JSON object. No markdown. No explanation. No extra text."""
+Return ONLY JSON. No explanations, no extra text.
+"""
 
 
 def load_image(file_bytes: bytes, content_type: str) -> Image.Image:
