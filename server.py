@@ -120,29 +120,16 @@ Rules:
 OUTPUT FORMAT — UNCHANGED
 ════════════════════════════════════════
 {
-  "invoice_number": "string or null",
-  "invoice_date": "string or null",
-  "due_date": "string or null",
-  "currency": "ISO 4217 code or null",
-  "reference_number": "string or null",
-  "reference_type": "string or null",
-  "vendor_name": "string or null",
-  "vendor_address": "string or null",
-  "vendor_tax_id": "string or null",
-  "customer_name": "string or null",
-  "customer_address": "string or null",
-  "customer_tax_id": "string or null",
-  "line_items": [
-    {
-      "description": "string or null",
-      "qty": null,
-      "unit_price": null,
-      "total": null
-    }
-  ],
-  "tax_and_charges": [],
-  "total_amount": null,
-  "note": "string or null"
+  "invoice_number": "Invoice No / Bill No",
+  "date": "invoice date",
+  "reference_number": "Ref No / PO Number, null if absent",
+  "vendor_name": "seller name",
+  "vendor_address": "seller address",
+  "customer_name": "buyer name",
+  "customer_address": "buyer address",
+  "line_items": [{"description": "...", "qty": 0, "unit_price": 0, "total": 0}],
+  "total_amount": 0,
+  "note": "remarks or null"
 }
 
 Return ONLY the JSON object. No markdown. No explanation. No extra text."""
